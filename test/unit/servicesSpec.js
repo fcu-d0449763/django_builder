@@ -198,7 +198,7 @@ describe('service', function () {
         expect(model.ordering_field()).toBe(field_name_3);
 
         // Slug Field
-        var field_name_4 = 'slug';
+        var field_name_4 = 'token';
         var field_opts_4 = {"name": field_name_4, "type": 'FieldType'};
         var field_4 = ff.make_field(field_opts_4, $scope);
         model.fields.push(field_4);

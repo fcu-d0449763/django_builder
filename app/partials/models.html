@@ -199,6 +199,9 @@
 
                 <h4>{{ app_name()|lowercase }}/templates/{{ model.name|lowercase}}_list.html</h4>
                 <pre class="builder_code">{{ model.render_list_html(app_name()) }}</pre>
+
+                <h4>{{ app_name()|lowercase }}/templates/{{ model.name|lowercase}}_confirm_delete.html</h4>
+                <pre class="builder_code">{{ model.render_confirm_delete_html(app_name()) }}</pre>
             </div>
         </div>
     </div>

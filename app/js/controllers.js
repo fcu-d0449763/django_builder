@@ -540,12 +540,12 @@ angular.module('builder.controllers', ['LocalStorageModule'])
                     $scope.field_factory.make_field({
                         'name': 'name',
                         'type': 'django.db.models.CharField',
-                        'opts': 'max_length=255'
+                        'opts': 'max_length=255, verbose_name=\'name\''
                     }),
                     $scope.field_factory.make_field({
-                        'name': 'slug',
-                        'type': 'django_extensions.db.fields.AutoSlugField',
-                        'opts': 'populate_from=\'name\', blank=True'
+                        'name': 'token',
+                        'type': 'django.db.models.UUIDField',
+                        'opts': 'db_index=True, default=uuid.uuid4'
                     }),
                     $scope.field_factory.make_field({
                         'name': 'created',

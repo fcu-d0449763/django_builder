@@ -55,15 +55,73 @@ function ModelRenderFactory() {
             all_output+=_this.render_templates_html(app_name, models);
             return all_output;
         };
+
         _this.render_base_html = function(app_name, models){
-            return '<html><head></head><body>{% block content %}Replace this.{% endblock %}</body>';
+
+            var base_html = '{% load bootstrap4 %}\n'+
+
+            '{% bootstrap_css %}\n'+
+            '{% bootstrap_javascript jquery=1 %}\n'+
+
+            '\n'+
+            '\n'+
+            '{% load static %}';
+                
+            
+            base_html += '<html><head></head><body><nav class="navbar navbar-expand-sm bg-primary  navbar-dark">\n'+
+            '  <a class="navbar-brand" href="#">demo</a>\n'+
+            '  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">\n'+
+            '    <span class="navbar-toggler-icon"></span>\n'+
+            '  </button>\n'+
+            '  <div class="collapse navbar-collapse" id="collapsibleNavbar">\n'+
+            '      <!-- Dropdown -->\n'+
+            '      <ul class="navbar-nav ml-auto">\n'+
+            '        <li class="nav-item dropdown">\n'+
+            '          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n'+
+            '          Click Me!\n'+
+            '        </a>\n'+
+            '          <div class="dropdown-menu dropdown-menu-right animate slideIn" aria-labelledby="navbarDropdown">';
+                
+            jQuery.each(models, function(i, model){
+                base_html += model._navtemplate_links(app_name, _this);
+            });                
+                
+            base_html+= '</div>\n'+
+            '        </li>\n'+
+            '      </ul>\n'+
+            '    <ul class="navbar-nav ml-auto">\n'+
+            '      <li class="nav-item">\n'+
+            '        <a class="nav-link" href="#">part</a>\n'+
+            '      </li>\n'+
+            '      <li class="nav-item">\n'+
+            '        <a class="nav-link" href="#">db</a>\n'+
+            '      </li>\n'+
+            '      <li class="nav-item">\n'+
+            '        <a class="nav-link" href="#">connme</a>\n'+
+            '      </li>\n'+
+            '      <li class="nav-item">\n'+
+            '        <a class="nav-link" href="#">login</a>\n'+
+            '      </li>    \n'+
+            '    </ul>\n'+
+            '      <form class="form-inline" action="#">\n'+
+            '    <input class="form-control mr-sm-1" type="text" placeholder="Search">\n'+
+            '    <button class="btn btn-success" type="submit">serth</button>\n'+
+            '  </form>\n'+
+            '  \n'+
+            '  </div>  \n'+
+            '</nav>{% block content %}Replace this.{% endblock %}</body></html>';
+                
+            
+
+
+            return base_html;
         };
         _this.pre_imported_modules = function(n){
             return {
                 // module, import as
-                'django.contrib.auth.models': { as: 'auth_models'},
+                //'django.contrib.auth.models': { as: 'auth_models'},
                 'django.db.models': { as: 'models'},
-                'django_extensions.db.fields': { as: 'extension_fields'}
+                //'django_extensions.db.fields': { as: 'extension_fields'}
             };
         };
         _this.pre_imported_modules_names = function(n){
@@ -136,13 +194,13 @@ function ModelRenderFactory() {
             }else{
               urls_py += 'from django.conf.urls import url, include\n';
             }
-            urls_py += 'from rest_framework import routers'+_this.new_lines(2);
-            urls_py += 'from . import api'+_this.new_lines(1);
+            urls_py += '#from rest_framework import routers'+_this.new_lines(2);
+            urls_py += '#from . import api'+_this.new_lines(1);
             urls_py += 'from . import views'+_this.new_lines(2);
 
-            urls_py +='router = routers.DefaultRouter()'+_this.new_lines(1);
+            urls_py +='#router = routers.DefaultRouter()'+_this.new_lines(1);
             jQuery.each(models, function(i, model){
-                urls_py +='router.register(r\''+model.l_name()+'\', api.'+model.name+'ViewSet)'+_this.new_lines(1);
+                urls_py +='#router.register(r\''+model.l_name()+'\', api.'+model.name+'ViewSet)'+_this.new_lines(1);
             });
             urls_py += _this.new_lines(2);
             urls_py += 'urlpatterns = ('+_this.new_lines(1);
@@ -173,12 +231,13 @@ function ModelRenderFactory() {
             return views_py;
         };
         _this.render_views_py = function (app_name, models) {
-            var views_py =  'from django.views.generic import DetailView, ListView, UpdateView, CreateView\n';
+            var views_py =  'from django.views.generic import DetailView, ListView, UpdateView, CreateView, DeleteView\nfrom django.urls import reverse_lazy\n';
             views_py += 'from .models import '+_this.model_names(models).join(', ');
             views_py += _this.new_lines(1);
             views_py += 'from .forms import '+_this.model_names(models, 'Form').join(', ');
             views_py += _this.new_lines(2);
 
+            
             jQuery.each(models, function(i, model){
                 views_py += model.render_view_classes(app_name, _this);
             });
@@ -188,11 +247,11 @@ function ModelRenderFactory() {
         _this.render_models_py = function (app_name, models, django2) {
             var models_py = '';
             if(django2){
-              models_py += 'from django.urls import reverse\n';
+              models_py += 'from django.urls import reverse\nfrom django.db import models\nimport uuid\n';
             }else{
-              models_py += 'from django.core.urlresolvers import reverse\n';
+              models_py += 'from django.core.urlresolvers import reverse\nfrom django.db import models\nimport uuid\n';
             }
-            models_py += 'from django_extensions.db.fields import AutoSlugField\n';
+            //models_py += 'from django_extensions.db.fields import AutoSlugField\n';
 
             var field_imports = []
             jQuery.each(models, function(i, model){
@@ -207,10 +266,10 @@ function ModelRenderFactory() {
             jQuery.each(sorted_field_imports, function(i, field_import){
                 models_py += field_import;
             })
-            models_py += 'from django.conf import settings\n';
-            models_py += 'from django.contrib.contenttypes.fields import GenericForeignKey\n';
-            models_py += 'from django.contrib.contenttypes.models import ContentType\n';
-            models_py += 'from django.contrib.auth import get_user_model\n';
+            //models_py += 'from django.conf import settings\n';
+            //models_py += 'from django.contrib.contenttypes.fields import GenericForeignKey\n';
+            //models_py += 'from django.contrib.contenttypes.models import ContentType\n';
+            //models_py += 'from django.contrib.auth import get_user_model\n';
 
             jQuery.each(_this.pre_imported_modules(), function(_import, import_conf){
                 var _import_split = _import.split('.');
@@ -254,6 +313,7 @@ function ModelRenderFactory() {
                 templates.push([model.l_name()+'_form.html', model.render_form_html(app_name)]);
                 templates.push([model.l_name()+'_detail.html', model.render_detail_html(app_name)]);
                 templates.push([model.l_name()+'_list.html', model.render_list_html(app_name)]);
+                templates.push([model.l_name()+'_confirm_delete.html', model.render_confirm_delete_html(app_name)]);
             });
 
             return templates;
@@ -509,11 +569,6 @@ function RelationshipFactory() {
 
                 form_div2.append(jQuery('<label>').text('Relationship to Model'));
 
-                const to_select = jQuery('<select>').attr('name', 'to').addClass('form-control');
-
-                const that = this;
-
-                /* include built in models */
                 const _opt_builtin = jQuery('<optgroup>').attr('label', 'Django models');
                 jQuery.each($scope.built_in_models, function(model_name, built_in_model){
                     const opt = jQuery('<option>').attr('val', model_name).text(model_name)
@@ -522,34 +577,8 @@ function RelationshipFactory() {
                     }
                     _opt_builtin.append(opt);
                 });
-                to_select.append(_opt_builtin);
-
-                /* include application models */
-                const _opt_models = jQuery('<optgroup>').attr('label', 'Your App models');
-                jQuery.each($scope.models, function(i, model){
-                    const opt = jQuery('<option>').attr('val', model.name).text(model.name)
-                    if (model.name == that.to) {
-                      opt.attr('selected', 'selected');
-                    }
-                    _opt_models.append(opt);
-                });
-                to_select.append(_opt_models);
-
-                form_div2.append(to_select)
-
-                const type_select = jQuery('<select>').attr('name', 'type');
-
-                jQuery.each($scope.relationship_factory.relationship_types(), function(i, relationship_type){
-                    type_select.append(jQuery('<option>').attr('val', relationship_type).text(relationship_type));
-                });
-
-                form_div3.append(jQuery('<label>').text('Relationship Type'));
-                form_div3.append(type_select);
-
-                // Setup select after adding to form
-                to_select.select2({theme: "bootstrap", allowClear: true, placeholder: "Select a model.", tags: true, selectOnClose: true});
-                type_select.select2({theme: "bootstrap"});
-
+                form_div3.append(jQuery('<label>').text('Field Type'));
+                form_div3.append(select);
                 form_div4.append(jQuery('<label>').text('Arguments'));
                 form_div4.append(jQuery('<input>').attr('name', 'opts')
                     .attr('placeholder', 'options').addClass('form-control').val(this.opts));
@@ -566,47 +595,47 @@ function FieldFactory() {
         var _this = this;
         _this.fields = function () {
             return {
-                'django.db.models.TextField': {default_args: 'max_length=100'},
-                'django.db.models.CharField': {default_args: 'max_length=30'},
+                'django.db.models.TextField': {default_args: 'max_length=100, verbose_name=\'\''},
+                'django.db.models.CharField': {default_args: 'max_length=30, verbose_name=\'\''},
                 'django.contrib.contenttypes.fields.GenericForeignKey': {default_args: '\"content_type\", \"object_id\"'},
-                'django_extensions.db.fields.AutoSlugField': {},
+                'django_extensions.db.fields.AutoSlugField': {default_args: 'verbose_name=\'\''},
                 'django.contrib.postgres.fields.ArrayField': {default_args: 'models.CharField(max_length=100)'},
                 'django.contrib.postgres.fields.CICharField': {default_args: 'max_length=30'},
-                'django.contrib.postgres.fields.CIEmailField': {},
-                'django.contrib.postgres.fields.CITextField': {},
-                'django.contrib.postgres.fields.HStoreField': {},
+                'django.contrib.postgres.fields.CIEmailField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.CITextField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.HStoreField': {default_args: 'verbose_name=\'\''},
                 'django.contrib.postgres.fields.JSONField': {default_args: 'default=dict'},
-                'django.contrib.postgres.fields.ranges.IntegerRangeField': {},
-                'django.contrib.postgres.fields.ranges.BigIntegerRangeField': {},
-                'django.contrib.postgres.fields.ranges.FloatRangeField': {},
-                'django.contrib.postgres.fields.ranges.DateTimeRangeField': {},
-                'django.contrib.postgres.fields.ranges.DateRangeField': {},
-                'django.db.models.CommaSeparatedIntegerField': {},
-                'django.db.models.BigAutoField': {},
-                'django.db.models.BigIntegerField': {},
-                'django.db.models.BooleanField': {},
-                'django.db.models.DateField': {},
-                'django.db.models.DateTimeField': {},
+                'django.contrib.postgres.fields.ranges.IntegerRangeField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.ranges.BigIntegerRangeField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.ranges.FloatRangeField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.ranges.DateTimeRangeField': {default_args: 'verbose_name=\'\''},
+                'django.contrib.postgres.fields.ranges.DateRangeField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.CommaSeparatedIntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.BigAutoField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.BigIntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.BooleanField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.DateField':{default_args: 'verbose_name=\'\''},
+                'django.db.models.DateTimeField': {default_args: 'verbose_name=\'\''},
                 'django.db.models.DecimalField': {default_args: 'max_digits=10, decimal_places=2'},
-                'django.db.models.DurationField': {},
+                'django.db.models.DurationField': {default_args: 'verbose_name=\'\''},
                 'django.db.models.FileField': {default_args: 'upload_to=\"/upload/files/\"'},
                 'django.db.models.ImageField': {default_args: 'upload_to=\"/upload/images/\"'},
-                'django.db.models.FilePathField': {},
-                'django.db.models.FloatField': {},
-                'django.db.models.IntegerField': {},
-                'django.db.models.PositiveIntegerField': {},
-                'django.db.models.PositiveSmallIntegerField': {},
-                'django.db.models.SlugField': {},
-                'django.db.models.IPAddressField': {},
-                'django.db.models.GenericIPAddressField': {},
-                'django.db.models.NullBooleanField': {},
-                'django.db.models.TimeField': {},
-                'django.db.models.BinaryField': {},
-                'django.db.models.AutoField': {},
-                'django.db.models.SmallIntegerField': {},
-                'django.db.models.URLField': {},
-                'django.db.models.UUIDField': {},
-                'django.db.models.EmailField': {}
+                'django.db.models.FilePathField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.FloatField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.IntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.PositiveIntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.PositiveSmallIntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.SlugField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.IPAddressField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.GenericIPAddressField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.NullBooleanField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.TimeField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.BinaryField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.AutoField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.SmallIntegerField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.URLField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.UUIDField': {default_args: 'verbose_name=\'\''},
+                'django.db.models.EmailField': {default_args: 'verbose_name=\'\''}
             };
         };
         _this.default_field_args = function (field_type) {
@@ -728,15 +757,15 @@ function ModelServiceFactory() {
             };
             this.identifier = function () {
                 // TODO - find another name AutoSlugField
-                if(this.field_names().indexOf('slug')!=-1){
-                    return 'slug';
+                if(this.field_names().indexOf('token')!=-1){
+                    return 'token';
                 }else{
                     return 'pk';
                 }
             };
             this.identifier_is_slug = function () {
                 // TODO - find another name AutoSlugField
-                if(this.field_names().indexOf('slug')!=-1){
+                if(this.field_names().indexOf('token')!=-1){
                     return true;
                 }else{
                     return false;
@@ -841,9 +870,10 @@ function ModelServiceFactory() {
                 urls += renderer.spaces(4)+'# urls for '+this.name+'\n';
 
                 if(django2){
-                  var prefix = renderer.spaces(4)+path_import+'(\''+app_name+'/'+this.l_name();
+                  //var prefix = renderer.spaces(4)+path_import+'(\''+app_name+'/'+this.l_name();
+                  var prefix = renderer.spaces(4)+path_import+'(\''+this.l_name();
                   if(this.identifier_is_slug()){
-                    var url_identifier = '<slug:'+this.identifier()+'>'
+                    var url_identifier = '<uuid:'+this.identifier()+'>'
                   }else{
                     var url_identifier = '<int:'+this.identifier()+'>'
                   }
@@ -851,12 +881,17 @@ function ModelServiceFactory() {
                   urls += prefix+'/create/\', views.'+this.name+'CreateView.as_view(), name=\''+app_name+'_'+this.l_name()+'_create\'),\n';
                   urls += prefix+'/detail/'+url_identifier+'/\', views.'+this.name+'DetailView.as_view(), name=\''+app_name+'_'+this.l_name()+'_detail\'),\n';
                   urls += prefix+'/update/'+url_identifier+'/\', views.'+this.name+'UpdateView.as_view(), name=\''+app_name+'_'+this.l_name()+'_update\'),\n';
+                  urls += prefix+'/delete/'+url_identifier+'/\', views.'+this.name+'DeleteView.as_view(), name=\''+app_name+'_'+this.l_name()+'_delete\'),\n';
+
                 }else{
-                  var prefix = renderer.spaces(4)+path_import+'(r\'^'+app_name+'/'+this.l_name();
+                  //var prefix = renderer.spaces(4)+path_import+'(r\'^'+app_name+'/'+this.l_name();
+                  var prefix = renderer.spaces(4)+path_import+'(\''+this.l_name();
                   urls += prefix+'/$\', views.'+this.name+'ListView.as_view(), name=\''+app_name+'_'+this.l_name()+'_list\'),\n';
                   urls += prefix+'/create/$\', views.'+this.name+'CreateView.as_view(), name=\''+app_name+'_'+this.l_name()+'_create\'),\n';
                   urls += prefix+'/detail/(?P<'+this.identifier()+'>\\S+)/$\', views.'+this.name+'DetailView.as_view(), name=\''+app_name+'_'+this.l_name()+'_detail\'),\n';
                   urls += prefix+'/update/(?P<'+this.identifier()+'>\\S+)/$\', views.'+this.name+'UpdateView.as_view(), name=\''+app_name+'_'+this.l_name()+'_update\'),\n';
+                  urls += prefix+'/delete/(?P<'+this.identifier()+'>\\S+)/$\', views.'+this.name+'DeleteView.as_view(), name=\''+app_name+'_'+this.l_name()+'_delete\'),\n';
+ 
                 }
 
                 urls += ')\n';
@@ -878,7 +913,7 @@ function ModelServiceFactory() {
                 var admin_fields = this.admin_fields();
                 if(admin_fields.length>0) {
                     admin_classes += renderer.spaces(4) + 'list_display = ' + this.admin_fields() + '\n';
-                    admin_classes += renderer.spaces(4) + 'readonly_fields = ' + this.admin_read_only_fields() + '\n';
+                    //admin_classes += renderer.spaces(4) + 'readonly_fields = ' + this.admin_read_only_fields() + '\n';
                 }else{
                     admin_classes += renderer.new_lines(1);
                 }
@@ -897,6 +932,7 @@ function ModelServiceFactory() {
                 view_classes += 'class '+this.name+'CreateView(CreateView):\n';
                 view_classes += renderer.spaces(4)+'model = '+this.name+'\n';
                 view_classes += renderer.spaces(4)+'form_class = '+this.name+'Form\n';
+                view_classes += renderer.spaces(4)+'success_url =  reverse_lazy(\''+app_name+'_'+this.name+'_list\')';
                 view_classes += renderer.new_lines(2);
 
                 view_classes += 'class '+this.name+'DetailView(DetailView):\n';
@@ -905,9 +941,15 @@ function ModelServiceFactory() {
 
                 view_classes += 'class '+this.name+'UpdateView(UpdateView):\n';
                 view_classes += renderer.spaces(4)+'model = '+this.name+'\n';
-                view_classes += renderer.spaces(4)+'form_class = '+this.name+'Form';
+                view_classes += renderer.spaces(4)+'form_class = '+this.name+'Form\n';
+                view_classes += renderer.spaces(4)+'success_url =  reverse_lazy(\''+app_name+'_'+this.name+'_list\')';
                 view_classes += renderer.new_lines(2);
 
+                view_classes += 'class '+this.name+'DeleteView(DeleteView):\n';
+                view_classes += renderer.spaces(4)+'model = '+this.name+'\n';
+                view_classes += renderer.spaces(4)+'form_class = '+this.name+'Form\n';
+                view_classes += renderer.spaces(4)+'success_url =  reverse_lazy(\''+app_name+'_'+this.name+'_list\')';
+                view_classes += renderer.new_lines(2);
                 return view_classes;
             };
             this.render_model_class_header = function(app_name, renderer) {
@@ -1009,9 +1051,9 @@ function ModelServiceFactory() {
                 cls += renderer.spaces(8)+'ordering = (\'-'+this.ordering_field()+'\',)';
 
                 cls += renderer.new_lines(2);
-                cls += renderer.spaces(4)+'def __unicode__(self):';
+                cls += renderer.spaces(4)+'def __str__(self):';
                 cls += renderer.new_lines(1);
-                cls += renderer.spaces(8)+'return u\'%s\' % self.'+this.identifier();
+                cls += renderer.spaces(8)+'return str('+this.identifier()+')';
 
                 cls += renderer.new_lines(2);
                 cls += renderer.spaces(4)+'def get_absolute_url(self):';
@@ -1023,6 +1065,12 @@ function ModelServiceFactory() {
                 cls += renderer.spaces(4)+'def get_update_url(self):';
                 cls += renderer.new_lines(1);
                 cls += renderer.spaces(8)+'return reverse(\''+app_name+'_'+this.l_name()+'_update\', args=(self.'+this.identifier()+',))';
+                cls += renderer.new_lines(1);
+
+                cls += renderer.new_lines(2);
+                cls += renderer.spaces(4)+'def get_list_url(self):';
+                cls += renderer.new_lines(1);
+                cls += renderer.spaces(8)+'return reverse(\''+app_name+'_'+this.l_name()+'_list\')';
                 cls += renderer.new_lines(3);
 
                 return cls;
@@ -1062,6 +1110,11 @@ function ModelServiceFactory() {
             this._template_header = function(){
                 return '{% extends "base.html" %}\n{% load static %}\n';
             };
+            //<a class="dropdown-item" href="#">Another action</a>
+            this._navtemplate_links = function(app_name){
+                var list_url = app_name+'_'+this.l_name()+'_list';
+                return '<a class="dropdown-item" href="{% url \''+list_url+'\' %}">'+this.name+' Listing<\/a>\n';
+            };
             this._template_links = function(app_name){
                 var list_url = app_name+'_'+this.l_name()+'_list';
                 return '<p><a class="btn btn-default" href="{% url \''+list_url+'\' %}">'+this.name+' Listing<\/a><\/p>\n';
@@ -1069,11 +1122,21 @@ function ModelServiceFactory() {
             this._wrap_block = function(block, content){
                 return '{% block '+block+' %}\n'+content+'\n{% endblock %}'
             };
+            this.render_confirm_delete_html = function(app_name){
+                var confirm_delete_html = this._template_header();
+                confirm_delete_html += "{% load bootstrap4 %}\n";
+                var form = '<form method="post">\n';
+                form += '{% csrf_token %}\n<p>Are you sure you want to delete "{{ object }}"?</p>\n';
+                form += '<input type="submit" value="Confirm">\n';
+                form += '</form>';
+                confirm_delete_html += this._wrap_block('content', form);
+                return confirm_delete_html;
+            };
             this.render_form_html = function(app_name){
                 var form_html = this._template_header();
-                form_html += "{% load crispy_forms_tags %}\n";
+                form_html += "{% load bootstrap4 %}\n";
                 var form = this._template_links(app_name) + '<form method="post">\n';
-                form += '{% csrf_token %}\n{{form|crispy}}\n';
+                form += '{% csrf_token %}\n{% bootstrap_form form %}\n';
                 form += '<button class="btn btn-primary" type="submit">Submit</button>\n';
                 form += '</form>';
                 form_html += this._wrap_block('content', form);
@@ -1083,6 +1146,8 @@ function ModelServiceFactory() {
                 var create_url = app_name+'_'+this.l_name()+'_create';
                 var list_html = this._template_header();
                 var table_html = this._template_links(app_name) +'<table class="table">\n';
+                table_html += '<a class="btn btn-primary" href="{% url \''+create_url+'\' %}">Create new '+this.name+'<\/a>';
+
                 table_html += '<tr>\n';
                 table_html += '<td>ID<\/td><td>Link<\/td>\n';
                 jQuery.each(this.fields, function(i, field){
@@ -1099,7 +1164,6 @@ function ModelServiceFactory() {
                 table_html += '<\/tr>\n';
                 table_html += '{% endfor %}\n';
                 table_html += '<\/table>';
-                table_html += '<a class="btn btn-primary" href="{% url \''+create_url+'\' %}">Create new '+this.name+'<\/a>';
                 list_html += this._wrap_block('content', table_html);
                 return list_html;
             };
